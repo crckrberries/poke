@@ -5,24 +5,27 @@ use std::{
 };
 
 use notify_rust::Notification;
-use poke_client::config::Config;
+use poke_client::config::{Config};
+use poke_client::creds::Credentials;
 use poke_common::comm::ServerPacket;
 use poke_common::message::Message;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let maybe_config = Config::read_from_disk()?;
+    let host = Config::read_from_disk()?.map(|c| c.server).flatten();
 
-    let Some(config) = maybe_config else {
+    let mut stream = TcpStream::connect(format!(
+        "{}:61601",
+        host.unwrap_or_else(|| env::var("POKE_SERVER").expect("set `POKE_SERVER` or specify a server in config.toml before using"))
+    ))?;
+
+    let maybe_creds = Credentials::read_from_disk()?;
+
+    let Some(creds) = maybe_creds else {
         eprintln!("run `poke register` to create an account");
         return Ok(());
     };
 
-    let mut stream = TcpStream::connect(format!(
-        "{}:61601",
-        env::var("POKE_SERVER").expect("set `POKE_SERVER` before using")
-    ))?;
-
-    poke_client::auth::authenticate(config, &mut stream, poke_common::auth::Intent::Daemon)?;
+    poke_client::creds::authenticate(creds, &mut stream, poke_common::auth::Intent::Daemon)?;
 
     let reader = BufReader::new(stream);
 

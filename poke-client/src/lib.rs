@@ -1,2 +1,2 @@
-pub mod auth;
+pub mod creds;
 pub mod config;

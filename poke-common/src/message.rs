@@ -14,6 +14,7 @@ impl FromStr for Recipients {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "@all" => Ok(Self::All),
+
             _ => Ok(Self::List(
                 s.split(',').map(|r| r.trim().to_owned()).collect(),
             )),

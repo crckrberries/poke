@@ -1,18 +1,10 @@
-use std::{
-    fs::{OpenOptions, create_dir_all},
-    io::{Read, Write},
-    path::PathBuf,
-};
+use std::{fs::{OpenOptions, create_dir_all}, io::{Read, Write}, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct Config {
-    pub username: String,
-    pub token: Option<String>,
-}
-
+// TODO: this entire thing has like a lot in common with `Credentials`
+ 
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("io error: {0}")]
@@ -25,7 +17,12 @@ pub enum Error {
     ConfigSerialize(#[from] toml::ser::Error),
 }
 
-impl Config {
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Config {
+	pub server: Option<String>,
+}
+
+impl Config{
     fn path() -> PathBuf {
         let config_dir: PathBuf = dirs::config_dir().unwrap().join("poke");
         config_dir.join("config.toml")
