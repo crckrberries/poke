@@ -15,4 +15,6 @@ poke-client = { path = "../poke-client" }
 dirs = "7.0.0"
 thiserror = "2.0.21"
 toml = "1.2.2"
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
 notify-rust = "4.19.0"

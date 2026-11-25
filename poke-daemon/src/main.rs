@@ -4,8 +4,9 @@ use std::{
     net::TcpStream,
 };
 
+#[cfg(not(target_os = "macos"))]
 use notify_rust::Notification;
-use poke_client::config::{Config};
+use poke_client::config::Config;
 use poke_client::creds::Credentials;
 use poke_common::comm::ServerPacket;
 use poke_common::message::Message;
@@ -15,7 +16,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut stream = TcpStream::connect(format!(
         "{}:61601",
-        host.unwrap_or_else(|| env::var("POKE_SERVER").expect("set `POKE_SERVER` or specify a server in config.toml before using"))
+        host.unwrap_or_else(|| env::var("POKE_SERVER")
+            .expect("set `POKE_SERVER` or specify a server in config.toml before using"))
     ))?;
 
     let maybe_creds = Credentials::read_from_disk()?;
@@ -44,6 +46,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+fn display_notification(msg: &Message) {
+    use std::process::Command;
+
+    let script = r#"
+		on run { title, content }
+			display notification content with title title
+		end run
+	"#;
+
+    Command::new("osascript")
+        .args(["-e", script, "--", &msg.sender, &msg.content])
+        .spawn()
+        .unwrap();
+}
+
+#[cfg(not(target_os = "macos"))]
 fn display_notification(msg: &Message) {
     Notification::new()
         .summary(&msg.sender)

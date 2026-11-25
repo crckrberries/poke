@@ -22,7 +22,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut stream = TcpStream::connect(format!(
         "{}:61601",
-        host.unwrap_or_else(|| env::var("POKE_SERVER").expect("set `POKE_SERVER` or specify a server in config.toml before using"))
+        host.unwrap_or_else(|| env::var("POKE_SERVER")
+            .expect("set `POKE_SERVER` or specify a server in config.toml before using"))
     ))?;
 
     let config = maybe_config.unwrap_or_else(|| {
@@ -35,7 +36,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             token: None,
         }
     });
-
 
     poke_client::creds::authenticate(config, &mut stream, poke_common::auth::Intent::Cli)?;
 

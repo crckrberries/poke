@@ -1,2 +1,2 @@
-pub mod creds;
 pub mod config;
+pub mod creds;
