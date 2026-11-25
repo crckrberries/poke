@@ -1,0 +1,15 @@
+[package]
+name = "poke-cli"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "poke"
+path = "src/main.rs"
+
+[dependencies]
+postcard = { version = "1.2.0", features = ["alloc"] }
+serde = { version = "1.0.229", features = ["derive"] }
+poke-client = { path = "../poke-client" }
+poke-common = { path = "../poke-common" }
+clap = { version = "4.6.9", features = ["derive"] }

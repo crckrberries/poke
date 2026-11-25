@@ -1,0 +1,13 @@
+[package]
+name = "poke-server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dirs = "7.0.0"
+poke-common = { path = "../poke-common" }
+postcard = { version = "1.2.0", features = ["alloc"] }
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.21"
+toml = "1.2.3"
+uuid = { version = "1.29.3", features = ["v4"] }

@@ -1,0 +1,18 @@
+[package]
+name = "poke-daemon"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "poked"
+path = "src/main.rs"
+
+[dependencies]
+postcard = { version = "1.2.0", features = ["alloc"] }
+serde = { version = "1.0.229", features = ["derive"] }
+poke-common = { path = "../poke-common" }
+poke-client = { path = "../poke-client" }
+dirs = "7.0.0"
+thiserror = "2.0.21"
+toml = "1.2.2"
+notify-rust = "4.19.0"

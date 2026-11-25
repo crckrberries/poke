@@ -1,0 +1,8 @@
+[package]
+name = "poke-common"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100.0"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
