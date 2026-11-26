@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     io::{BufRead, BufReader, Write},
     net::TcpListener,
     sync::{Arc, Mutex},
@@ -77,51 +78,56 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let packet: ClientPacket =
                     postcard::from_bytes_cobs(&mut packet_data.unwrap()).unwrap();
 
-                match packet {
-                    ClientPacket::Message(recipients, content) => {
-                        let message = Message {
-                            sender: client.username.clone(),
-                            recipients,
-                            content,
-                        };
-
-                        let mut clients = thread_state.clients.lock().unwrap();
-                        match message.recipients.clone() {
-                            poke_common::message::Recipients::All => {
-                                broadcast(&mut clients, ServerPacket::Message(message)).unwrap();
-                            }
-
-                            poke_common::message::Recipients::List(recipients) => {
-                                broadcast_to(
-                                    recipients,
-                                    &mut clients,
-                                    ServerPacket::Message(message),
-                                )
-                                .unwrap();
-                            }
-                        }
-                    }
-
-                    ClientPacket::Query(query) => match query {
-                        poke_common::comm::Query::ListClients => {
-                            let clients = thread_state.clients.lock().unwrap();
-                            client
-                                .stream
-                                .write_all(
-                                    &postcard::to_allocvec_cobs(&QueryResponse::Clients(
-                                        clients.iter().map(|c| c.username.clone()).collect(),
-                                    ))
-                                    .unwrap(),
-                                )
-                                .unwrap();
-                        }
-                    },
-                }
+                handle_packet(&thread_state, &mut client, packet);
             }
         });
     }
 
     Ok(())
+}
+
+fn handle_packet(thread_state: &Arc<ServerState>, client: &mut Client, packet: ClientPacket) {
+    match packet {
+        ClientPacket::Message(recipients, content) => {
+            let message = Message {
+                sender: client.username.clone(),
+                recipients,
+                content,
+            };
+
+            let mut clients = thread_state.clients.lock().unwrap();
+            match message.recipients.clone() {
+                poke_common::message::Recipients::All => {
+                    broadcast(&mut clients, ServerPacket::Message(message)).unwrap();
+                }
+
+                poke_common::message::Recipients::List(recipients) => {
+                    broadcast_to(recipients, &mut clients, ServerPacket::Message(message)).unwrap();
+                }
+            }
+        }
+
+        ClientPacket::Query(query) => match query {
+            poke_common::comm::Query::ListClients => {
+                let clients = thread_state.clients.lock().unwrap();
+
+                let mut seen = HashSet::new();
+                clients.iter().for_each(|c| {
+                    seen.insert(c.username.clone());
+                });
+
+                client
+                    .stream
+                    .write_all(
+                        &postcard::to_allocvec_cobs(&QueryResponse::Clients(
+                            seen.into_iter().collect(),
+                        ))
+                        .unwrap(),
+                    )
+                    .unwrap();
+            }
+        },
+    }
 }
 
 fn heartbeat(server_state: Arc<ServerState>) {
