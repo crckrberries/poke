@@ -16,8 +16,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut stream = TcpStream::connect(format!(
         "{}:61601",
-        host.unwrap_or_else(|| env::var("POKE_SERVER")
-            .expect("set `POKE_SERVER` or specify a server in config.toml before using"))
+        env::var("POKE_SERVER")
+            .unwrap_or_else(|_| host
+                .expect("set `POKE_SERVER` or specify a server in config.toml before using"))
     ))?;
 
     let maybe_creds = Credentials::read_from_disk()?;
