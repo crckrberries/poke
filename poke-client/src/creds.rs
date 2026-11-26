@@ -8,6 +8,7 @@ use std::{
 };
 
 use poke_common::auth::Auth;
+use poke_common::auth::AuthResponse;
 use poke_common::auth::Intent;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -72,6 +73,9 @@ pub enum AuthenticateError {
 
     #[error("config write error: {0}")]
     ConfigWriteError(#[from] Error),
+
+    #[error("invalid credentials")]
+    InvalidCredentials,
 }
 
 pub fn authenticate(
@@ -79,29 +83,33 @@ pub fn authenticate(
     stream: &mut TcpStream,
     intent: Intent,
 ) -> Result<(), AuthenticateError> {
-    if config.token.is_none() {
+    loop {
         stream.write_all(&postcard::to_allocvec_cobs(&Auth {
             user: config.username.clone(),
-            token: None,
+            token: config.token.clone(),
             intent,
         })?)?;
 
-        let token = postcard::from_bytes_cobs(
+        let response: AuthResponse = postcard::from_bytes_cobs(
             &mut BufReader::new(&mut *stream).split(0x00).next().unwrap()?,
         )?;
 
-        config.token = Some(token);
+        match response {
+            AuthResponse::Authenticated => {
+                break;
+            }
 
-        config.write_to_disk()?;
-    };
+            AuthResponse::Registered(token) => {
+                config.token = Some(token);
 
-    stream.write_all(&postcard::to_allocvec_cobs(&Auth {
-        user: config.username.clone(),
-        token: config.token,
-        intent,
-    })?)?;
+                config.write_to_disk()?;
+            }
 
-    stream.flush()?;
+            AuthResponse::InvalidCredentials => {
+                return Err(AuthenticateError::InvalidCredentials);
+            }
+        }
+    }
 
     Ok(())
 }

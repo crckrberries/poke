@@ -6,8 +6,14 @@ use std::{
 };
 
 use clap::Parser;
-use poke_client::{config::Config, creds::Credentials};
-use poke_common::comm::{ClientPacket, Query, QueryResponse};
+use poke_client::{
+    config::Config,
+    creds::{self, AuthenticateError, Credentials},
+};
+use poke_common::{
+    auth::Intent,
+    comm::{ClientPacket, Query, QueryResponse},
+};
 
 use crate::arg::Cli;
 
@@ -15,8 +21,6 @@ mod arg;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
-
-    let maybe_config = Credentials::read_from_disk()?;
 
     let host = Config::read_from_disk()?.map(|c| c.server).flatten();
 
@@ -27,7 +31,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .expect("set `POKE_SERVER` or specify a server in config.toml before using"))
     ))?;
 
-    let config = maybe_config.unwrap_or_else(|| {
+    let maybe_creds = Credentials::read_from_disk()?;
+
+    let creds = maybe_creds.unwrap_or_else(|| {
         eprint!("username: ");
         let mut input = String::new();
         stdin().read_line(&mut input).unwrap();
@@ -38,7 +44,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    poke_client::creds::authenticate(config, &mut stream, poke_common::auth::Intent::Cli)?;
+    if let Err(AuthenticateError::InvalidCredentials) =
+        creds::authenticate(creds, &mut stream, Intent::Cli)
+    {
+        eprintln!("invalid credentials; contact the server owner for help");
+        return Ok(());
+    };
 
     let outgoing_packet = match cli.command {
         arg::Commands::Send { args } => &ClientPacket::Message(args.recipients, args.message),

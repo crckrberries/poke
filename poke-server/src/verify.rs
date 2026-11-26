@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
 };
 
-use poke_common::auth::Auth;
+use poke_common::auth::{Auth, AuthResponse};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
@@ -93,6 +93,7 @@ pub fn verify(
         let auth: Auth = postcard::from_bytes_cobs(&mut packet?)?;
 
         if users.check_auth(&auth) {
+            stream.write_all(&postcard::to_allocvec_cobs(&AuthResponse::Authenticated)?)?;
             return Ok(auth);
         }
 
@@ -105,7 +106,13 @@ pub fn verify(
 
             users.users.insert(auth.user, token.clone());
             users.write_to_disk()?;
-            stream.write_all(&postcard::to_allocvec_cobs(&token)?)?;
+            stream.write_all(&postcard::to_allocvec_cobs(&AuthResponse::Registered(
+                token,
+            ))?)?;
+        } else {
+            stream.write_all(&postcard::to_allocvec_cobs(
+                &AuthResponse::InvalidCredentials,
+            )?)?;
         }
     }
 

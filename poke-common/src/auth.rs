@@ -12,3 +12,10 @@ pub enum Intent {
     Cli,
     Daemon,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum AuthResponse {
+    Authenticated,
+    Registered(String),
+    InvalidCredentials,
+}

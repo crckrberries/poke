@@ -6,10 +6,13 @@ use std::{
 
 #[cfg(not(target_os = "macos"))]
 use notify_rust::Notification;
-use poke_client::config::Config;
 use poke_client::creds::Credentials;
-use poke_common::comm::ServerPacket;
+use poke_client::{
+    config::Config,
+    creds::{self, AuthenticateError},
+};
 use poke_common::message::Message;
+use poke_common::{auth::Intent, comm::ServerPacket};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let host = Config::read_from_disk()?.map(|c| c.server).flatten();
@@ -28,7 +31,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     };
 
-    poke_client::creds::authenticate(creds, &mut stream, poke_common::auth::Intent::Daemon)?;
+    if let Err(AuthenticateError::InvalidCredentials) =
+        creds::authenticate(creds, &mut stream, Intent::Daemon)
+    {
+        eprintln!("invalid credentials; contact the server owner for help");
+        return Ok(());
+    };
 
     let reader = BufReader::new(stream);
 
